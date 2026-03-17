@@ -12,17 +12,15 @@ amikacin analysis and optimization. At a high level, `runProject.m`:
 1. builds a virtual neonatal population with physiology-aware covariates,
 2. evaluates the credibility of the generated population,
 3. loads one of the clinical cohorts through a GUI-based cohort selector,
-4. fits or loads serum creatinine prediction models,
+4. loads serum creatinine prediction models,
 5. derives patient-level physiology such as height, eGFR, cardiac output,
    and amikacin distribution volumes,
 6. injects those quantities into the PBPK/PD model,
 7. evaluates PK accuracy against observed amikacin concentrations,
-8. compares the creatinine framework against the Krzyzanski reference model,
-9. calibrates eco-evolutionary PD parameters on virtual and real cohorts,
-10. optimizes amikacin regimens under PK/PD constraints.
+8. calibrates eco-evolutionary PD parameters on virtual and real cohorts,
+9. optimizes amikacin regimens under PK/PD constraints.
 
-The codebase therefore spans virtual population generation, mixed-effects
-creatinine modeling, physiology updates, SimBiology simulation, bacterial PD
+The codebase therefore spans virtual population generation, physiology updates, SimBiology simulation, bacterial PD
 calibration, and regimen optimization.
 
 ## Repository Structure
@@ -33,9 +31,7 @@ calibration, and regimen optimization.
   SimBiology PBPK/PD project loaded and updated by the MATLAB scripts.
 - `source/dataverse_files/DATA_ACCESS.txt`
   Public data-access note replacing the distributed cohort spreadsheets.
-- `source/SavedModels/MODEL_REGENERATION.txt`
-  Note describing which mixed-effects model files must be regenerated locally
-  from approved data.
+
 
 ## PBPK/PD Project
 
@@ -79,15 +75,14 @@ To run the workflow, the project expects a MATLAB R2023 environment with support
 the components exercised by the scripts, including:
 - SimBiology v23.2
 - Statistics and Machine Learning Toolbox v23.2
-- Optimization Toolbox
+- Optimization Toolbox v23.2
 
 The workflow also relies on interactive dataset selection through
 `selectPipelineFromGUI.m`.
 
 ## Running The Workflow
 
-1. Open MATLAB in `EcoMIC_v18_withValidation`.
+1. Open MATLAB in `source`.
 2. Restore the required cohort spreadsheets locally if you have approved data
    access.
-3. Re-train neural network models from the approved cohort data.
-6. Run `runProject`.
+3. Run `runProject`.
