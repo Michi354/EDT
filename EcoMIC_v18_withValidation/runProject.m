@@ -1,5 +1,16 @@
-%% Neonatal Amikacin PK Simulation and Dosing Optimization
-% Chiara Romano & Michela Prunella
+% ============================================================
+% File: runProject.m
+%
+% Authors:
+%   - Michela Prunella (Polytechnic University of Bari, Bari, Italy, michela.prunella@poliba.it)
+%   - Chiara Romano (Universitá degli Studi dell’Aquila, L’Aquila, Italy, chiara.romano1@graduate.univaq.it)
+%
+%
+% Referenced publication:
+%   "Evolutionary digital twin framework for optimal aminoglycoside dosing in neonates with suspected sepsis",
+%   npj Digital Medicine, vol., pp., 2026.
+%   DOI: https://doi.org/10.1038/s41746-026-02558-w
+%
 
 clearvars; clc; close all;
 rng(0);
