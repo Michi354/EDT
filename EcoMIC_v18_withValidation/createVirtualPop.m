@@ -17,13 +17,10 @@ GA = [  (26-24)*lhsdesign(n_males*0.1,1) + 24;
         (42-37)*lhsdesign(n_females*0.3,1) + 37; 
      ]; % weeks
 
-%PNA = 1+round(10 * lhsdesign(N,1).^4);
-% Generate PNA in days (continuous, not rounded)
 PNA_male = 28 * lhsdesign(n_males,1).^2;  % 0–28 d
 PNA_fem  = 28 * lhsdesign(n_females,1).^2;
 PNA      = [PNA_male; PNA_fem];
 
-% PMA in weeks (keep as before, based on days)
 PMA = GA + round(PNA/7);
 
 
@@ -31,14 +28,6 @@ BW = zeros(N,1);
 Ht = zeros(N,1);
 Vd = zeros(N,1);
 HR = zeros(N,1);
-% 
-% simResults.ID = 1:N;
-% simResults.neonates = zeros(N, 7); % GA, PNA, PMA, gender, TBW, Ht, Vd
-% simResults.neonates(:,1) = round(GA);
-% simResults.neonates(:,2) = round(PNA);
-% simResults.neonates(:,3) = PMA;
-% simResults.neonates(1:500,4) = 0;
-% simResults.neonates(501:1000,4) = 1;
 
 Gender = zeros(N,1);
 Gender(1:500) = 0;
@@ -115,34 +104,18 @@ for n = 501:500+n_females
     end
 end
 
-% Build table, keep PNA in days
 neonates_tbl = table(string(1:N)', round(GA), round(PNA), PMA, Gender, BW, Ht, Vd, ...
     'VariableNames', {'PtID','GA','PNA','PMA','Gender','BW','Ht','Vd'});
 
-% Add PNA in hours (continuous, not rounded)
 neonates_tbl.PNA_h = PNA * 24;
-% simResults.neonates(:,5) = BW;
-% simResults.neonates(:,6) = Ht;
-% simResults.neonates(:,7) = Vd;
 
-% AKI flag 
 aki = zeros(N,1);
 aki(1:n_males) = double(rand(N/2,1) < 0.0019);
 aki(n_males+1:N) = double(rand(N/2,1) < 0.0135);
 neonates_tbl.aki = aki;
 
-% for i=1:500
-%     simResults.neonates(:,8) = double(rand(N,1) < 0.0019); % nelle bambine è più probabile che nei bambini (7:1) con incidenza gen. 1.54%
-% end 
-% for i=501:1000
-%     simResults.neonates(:,8) = double(rand(N,1) < 0.0135); 
-% end
-
-% COOLING flag ----> colonna 13
-
-% Add COOLING flag
 cooling = zeros(N,1);
-for i=1:N      % Il cooling inizia <=6 ore e può durare fino a 72 ore (quindi al più il bambino sampled può essere safe con cooling a 1 fino a 72, in teoria 72+6 ma mettiamo così per sicurezza, cooling a 6 ore cominica ad essere rischioso)
+for i=1:N
     if neonates_tbl.GA(i) >= 36 && neonates_tbl.PNA_h(i) <= 72 && neonates_tbl.aki(i)==0
         cooling(i) = double(rand < 0.9);
     elseif neonates_tbl.GA(i) >= 36 && neonates_tbl.PNA_h(i) <= 72 && neonates_tbl.aki(i)==1
@@ -153,20 +126,7 @@ for i=1:N      % Il cooling inizia <=6 ore e può durare fino a 72 ore (quindi a
 
 end
 
-% For neonates with AKI = 1, assign cooling = 1 with 75% probability
-% idxAki = (aki == 1);
-% cooling(idxAki) = double(rand(sum(idxAki),1) < 0.75);
-
 neonates_tbl.cooling = cooling;
-
-% simResults.neonates(:,13) = zeros(N,1);
-% for i=1:N
-%     if simResults.neonates(i,1) >= 36 && PNA(i)*24 <=6
-%         simResults.neonates(i,13) = double(rand < 0.9);  
-%     else
-%         simResults.neonates(i,13) = double(rand < 0.1);
-%     end
-% end
 
 neonates_tbl.Ibu = double(rand(N,1) < 0.08);
 neonates_tbl.Ino = double(rand(N,1) < 0.2);
@@ -411,10 +371,8 @@ TBW(Gender == 1) = 0.72 * BW(Gender == 1);  % Females: 72% of BW
 % Add to table (TBW in kg)
 neonates_tbl.TBW = TBW/1000;
 
-% Add Minimum Inhibitory Concentration (MIC)
-% Ann Intensive Care. 2020 Jun 8;10:75. doi: 10.1186/s13613-020-00685-5
-% Amikacin pharmacokinetic/pharmacodynamic in intensive care unit: a prospective database
-micValue  = [2, 3, 4, 6, 8];  % tipici sono 2/4/6. 
+% MIC values from Ann Intensive Care. 2020 Jun 8;10:75.
+micValue  = [2, 3, 4, 6, 8];
 micFreq   = [6, 2, 1, 0.5, 0.5];
 
 % Sample MIC values from a discrete distribution using randsample
@@ -422,10 +380,7 @@ MIC = randsample(micValue , N, true , micFreq);
 neonates_tbl.MIC = MIC';
 
 %% Vd amikacin
-% da https://pmc.ncbi.nlm.nih.gov/articles/PMC5341529/#:~:text=They%20evaluated%20the%20pharmacokinetics%20in,was%205.3%20%C2%B1%203.3%20hours.
-
-% --- Amikacin Vd (L/kg) using GA × PNA bins, values from Hughes et al.
-% JPPT 2017 (dopo suggerimento Karel)
+% Amikacin Vd (L/kg) using GA x PNA bins from Hughes et al., JPPT 2017.
 
 Vd_per_kg = zeros(N,1);
 
@@ -452,25 +407,6 @@ end
 BW_kg = neonates_tbl.BW/1000;
 neonates_tbl.Vd_amikacin = Vd_per_kg .* BW_kg;
 
-% Vd_amikacin = zeros(N,1);
-% for i=1:N
-%     if PMA(i)<=29 && PNA(i)<7
-%         Vd_per_kg(i)=0.414;
-%     elseif PMA(i)<=29 && PNA(i)<=28
-%         Vd_per_kg(i)=0.472;
-%     elseif PMA(i)<=29 && PNA(i)>28
-%        Vd_per_kg(i)=0.353;  
-%     elseif PMA(i)<=34 && PNA(i)<=7
-%        Vd_per_kg(i)=0.462; 
-%    elseif PMA(i)<=34 && PNA(i)>7
-%        Vd_per_kg(i)=0.454;  
-%     elseif PMA(i)>34
-%        Vd_per_kg(i)=0.433; 
-%     end
-%     Vd_amikacin(i)=Vd_per_kg(i)*BW_kg(i);
-% end
-% neonates_tbl.Vd_amikacin = Vd_amikacin;
-
 simResults.neonates = neonates_tbl;
 
 figure
@@ -493,24 +429,6 @@ set(gca, 'XTickLabel', labels)
 xlabel('Gestational Age (weeks)')
 ylabel('Cardiac Output (L/min)')
 title('Cardiac Output by Gestational Age')
-
-% % Step 1: Find neonates with Vd > 0.72
-% idxHighVd = Vd_amikacin > 0.72;
-% 
-% % Step 2: Plot GA vs Vd for those patients
-% figure;
-% scatter(GA(idxHighVd), Vd_amikacin(idxHighVd), 50, 'r', 'filled');
-% xlabel('Gestational Age (weeks)');
-% ylabel('Vd Amikacin (L/kg)');
-% title('Neonates with Vd > 0.72 L/kg');
-% grid on;
-% 
-% % Step 3: Add horizontal line at 0.72 for reference
-% yline(0.72, '--k', 'Vd = 0.72');
-% 
-% % Optional: Print these neonates' info
-% disp('Neonates with Vd_amikacin > 0.72:');
-% disp(simResults.neonates(idxHighVd, {'PtID','GA','PNA','BW','Vd_amikacin'}));
 
 
 end

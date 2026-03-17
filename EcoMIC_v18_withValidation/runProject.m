@@ -40,16 +40,6 @@ save_path = './SavedModels';
 mkdir(save_path)
 save(fullfile(save_path, modelstr), 'lmeBest');
 
-%% Find Creatinine models for different categories of newborns 
-% for flag = 0:3
-%     dataset = getDataset(flag); % or however you select
-%     [~, lmeModel, ~, ~] = fitCreatinineModel(dataset, flag);
-%     modelstr = strcat('LMEModel_flag',string(flag),'.mat');
-%     save_path = './SavedModels';
-%     mkdir(save_path)
-%     save(fullfile(save_path, modelstr), 'lmeModel');
-% end
-
 %% 4) Load Creatinine models
 models = cell(4,1);
 for i = 0:3
@@ -133,30 +123,17 @@ for i = 1:R
     k = (GA<37)*0.33 + (GA>=37)*0.45;
     eGFR_std     = k * Ht / Cr;              % mL/min/1.73m2
 
-
-    % Sistemo BSA con Haycock per coerenza con il resto del codice e
-    % commento Karel.
     BSA = 0.024265 .* (BW_kg .^ 0.5378) .* (Ht .^ 0.3964);  % Haycock formula (m^2)
 
 
     CL_tot_mL_min= eGFR_std * (BSA/1.73);
     eGFR(i)      = CL_tot_mL_min / BW_kg;    % mL/min/kg
 
-    % HR, SV e CO calcolati ancora nella vecchia maniera. 
-    % HR           = 140 + 10.*randn(1);      
-    % HR = min(max(HR,100),180); %legato ai battiti medi del bambino
-    % SV_mL_per_kg = 2.2 + 0.3.*randn(1);      
-    % SV_mL_per_kg = min(max(SV_mL_per_kg,1),4);
-    % CO_L_per_min = (HR .* (SV_mL_per_kg .* BW_kg)) / 1000;
-    % CO(i) = CO_L_per_min;
-
-    % Cacolo corretto di HR, SV, CO (con altre info tipo TH, PDA, etc..)
     hemi = computeHemodynamicParamsRow(row, flag, 'DerivePDA', true, 'Seed', []);  % [] keeps global RNG
     dataset.HR(i)            = hemi.HR;
     dataset.SV_mL(i)         = hemi.SV_mL;
     dataset.CO_L_min(i) = hemi.CO_L_min;
     dataset.CI_L_min_m2(i)   = hemi.CI_L_min_m2;
-    % Optional:
     dataset.PDA(i)           = hemi.PDA;
     dataset.PDA_sev(i)       = hemi.PDA_sev;
     
@@ -169,9 +146,6 @@ writetable(dataset, fullfile(outdir, 'AMICREA_TH_withPhysiology.xlsx'));
 save(fullfile(outdir, 'AMICREA_TH_withPhysiology.mat'),'dataset');
 
 %% 7) REAL POPULATION: AFE / AAFE summary  (MECHANISTIC, top-down validation of the Cr→eGFR→CL→Cb pipeline)
-% Questo risponde alla nostra domanda: If I trust my Cr→eGFR and physiology
-% rules, do the PBPK predictions match observed amikacin levels?" Si! AFE
-% vicino ad uno
 
 outdir = './Fitting_Amikacin_prediction';
 if ~exist(outdir,'dir'), mkdir(outdir); end
@@ -264,8 +238,6 @@ run_comparison_paper(models);
 % 1) Real dataset with sCr to read complete therapy history
 % 2) Read calibration matrix for PD parameters
 
-% Questo risponde alla nostra domanda: Quale è l'effetto PD dello
-% scheduling applicato?
 outdir = './Impact_Standard_on_PD';
 load(".\SavedOptimization\AMICREA_TH_withCalibration.mat") % Read PD patient-specific paramters 
 load(fullfile(outdir, 'AMICREA_TH_withPhysiology.mat'))
@@ -509,35 +481,6 @@ else
     writetable(dataset, fullfile(outdir, 'PD_DynamicsStandardTherapy_AMICREA_TH.xlsx'));
 end
 
-%% Plot Residuals (questa parte non l'ho verificata)
-% timeVec = data.(data.Properties.IndependentVariableName);
-% obsData = data.CONC;
-% indicesToKeep = ~isnan(obsData);
-% timeVec = timeVec(indicesToKeep);
-% 
-% % Get the residuals from the fitting results.
-% indRes = nlmeResults.stats.ires(indicesToKeep);
-% popRes = nlmeResults.stats.pres(indicesToKeep);
-% 
-% % Plot the residuals. Get a handle to the plot to be able to add more data
-% % to it later.
-% resplot = figure;
-% plot(timeVec,indRes,'d','MarkerFaceColor','b','markerEdgeColor','b');
-% hold on;
-% plot(timeVec,popRes,'d','MarkerFaceColor','w','markerEdgeColor','b');
-% hold off;
-% 
-% % Create a reference line representing a zero residual, and set its
-% % properties to omit this line from the plot legend.
-% refl = refline(0,0);
-% refl.Annotation.LegendInformation.IconDisplayStyle = 'off';
-% 
-% % Label the plot.
-% title('Residuals versus Time');
-% xlabel('Time');
-% ylabel('Residuals');
-% legend({'Individual','Population'});
-
 %% 9) VIRTUAL POPULATION: Predict Cr and Compute eGFR (mL/min/kg) 
 N=size(simResults.neonates,1);
 Estimate = zeros(N,1);
@@ -594,11 +537,6 @@ simResults.neonates.CardiacOutput = CO;
 mask = simResults.neonates.Creatinine < 4.5;
 simResults.neonates = simResults.neonates(mask,:);
 
-
-% ---- Remove rows with saturated creatinine (== 2.5 mg/dL)
-% mask2 = simResults.neonates.Creatinine > 0.2;
-% simResults.neonates = simResults.neonates(mask2,:);
-
 fprintf('Removed %d rows with Cr >= 4.5 mg/dL (saturating value).\n', sum(~mask));
 %fprintf('Removed %d rows with Cr < 0.2 mg/dL (saturating value).\n', sum(~mask2));
 mask = simResults.neonates.Creatinine > 0.2;
@@ -630,7 +568,7 @@ outlierRows = simResults.neonates(idxOutliers, :);
 disp(Cr_tot(idxOutliers))
 disp(outlierRows);
 
-%% 11) PLOT to check Creatinine consistency (pannello inferiore della figura 4 report)
+%% 11) Plot to check creatinine consistency
 % Scatter plot of all individual data points
 figure
 scatter(simResults.neonates.PNA, simResults.neonates.Creatinine, 'b.'); 
@@ -682,50 +620,6 @@ d = c(:,4) - c(:,2);
 fprintf('p75 - p25: min=%.4g, median=%.4g, max=%.4g (over days with N>=5)\n', ...
         min(d,[],'omitnan'), median(d,'omitnan'), max(d,[],'omitnan'));
 
-
-%% Effective calibration with Nielsen model after amikacin adjustments wrt genta
-% row = simResults.neonates(1,:);
-% 
-% baseDir  = '.\Bacterial_model_calibration';   % where g1_25.csv etc live
-% schedule = 'g2_25';                           % <- pick one (GA<32 in your naming)
-% optsCal  = struct('duration_h', 72, 'fu', 0.9, 'kf', 1, 'equiv_factor', 4);
-% 
-% [theta_hat, sim, p, meta] = pbpk_calibrate_from_genta(row, schedule, baseDir, optsCal);
-% 
-% fprintf('Equivalence used: gent %.1f mg/kg q%d h  ->  amikacin %.1f mg/kg q%d h\n', ...
-%     meta.gent_dose_mgkg, meta.tau_h, meta.ami_dose_mgkg, meta.tau_h);
-% 
-% % quick plot vs target
-% targets = load_targets_for_schedule(schedule, baseDir);
-% figure('Color','w'); hold on;
-% plot(sim.t, log10(sim.y(:,7)+sim.y(:,8)), 'LineWidth', 2);
-% scatter(targets.t, log10(targets.N), 35, 'filled');
-% xlabel('Time (h)'); 
-% ylabel('log_{10} CFU/mL');   % instead of 'Total CFU/mL'
-% grid on; box on;
-% legend('Amikacin (equiv) model','Gent targets');
-% title(sprintf('PD calibration for %s (newborn %s)', schedule, string(row.PtID)));
-
-
-%% Effective calibration with Nielsen model after amikacin adjustments wrt genta for ALL schedules 
-% idx = find(simResults.neonates.GA == 25, 1, 'first');
-% row = simResults.neonates(idx, :);
-% 
-% schedules = {'g1_25','g2_25','g3_25'};  % or _40, etc., matching your baby
-% [theta_hat1,p1, k_eq1] = pbpk_calibrate_joint(row, schedules, baseDir, struct('duration_h',72));
-% 
-% validate_across_schedules(row, baseDir, theta_hat1, k_eq1, schedules, 72); %per check con fig. 4 Nielsen
-% 
-% 
-% idx = find(simResults.neonates.GA == 40, 1, 'first');
-% 
-% row = simResults.neonates(idx, :);
-% 
-% schedules = {'g1_40','g2_40','g3_40'};  % or _40, etc., matching your baby
-% [theta_hat2,p2, k_eq2] = pbpk_calibrate_joint(row, schedules, baseDir, struct('duration_h',72));
-% 
-% validate_across_schedules(row, baseDir, theta_hat2, k_eq2, schedules, 72);
-
 %% CHECK CALIBRATION 
 warning on; 
 sbioProjObj = sbioloadproject('PBPK_PD_EcoEvolutive.sbproj');
@@ -759,7 +653,6 @@ for i = 1:N
     row.physiology = p;
     simResults.neonates(i,:) = row;
  
-    % plot_classical_schedule_for_baby(modelObj, row, theta_hat, p);
 end
 save(".\SavedOptimization\DigitalTwins_pop_withCalibration.mat","simResults") 
 
@@ -771,7 +664,6 @@ modelObj    = sbioProjObj.m1;
 % Considering the first row for each patient
 [~, idx] = unique(dataset.PtID, 'first');
 
-% Estrai solo la prima riga per ciascun ID
 T_first = dataset(idx, :);
 N = height(T_first);
 T_first.EC50s0 = nan(N,1); T_first.EC50r0 = nan(N,1); T_first.c = nan(N,1);
@@ -801,63 +693,10 @@ for i = 1:N
     row.physiology = p;
     T_first(i,:) = row;
  
-    % plot_classical_schedule_for_baby(modelObj, row, theta_hat, p);
 end
 save(fullfile(outdir, "AMICREA_TH_withCalibration.mat"),"T_first") 
 
-%%  Questa sezione è servita per fare il merge tra la figura ottenuta dal file NONMEM_dataset_analysis e quella nella precedente sezione
-% % Open the two saved figures (do not show)
-% f1 = openfig('nonmem.fig','invisible');
-% f2 = openfig('virtual.fig','invisible');
-% 
-% % Get the FIRST data axes from each figure (exclude colorbars/uipanels)
-% srcAx1 = findall(f1,'Type','axes','-not','Tag','Colorbar');
-% srcAx2 = findall(f2,'Type','axes','-not','Tag','Colorbar');
-% srcAx1 = srcAx1(1);   % pick primary axes if multiple
-% srcAx2 = srcAx2(1);
-% 
-% % New stacked figure (2 rows, 1 col)
-% F = figure('Color','w','Position',[100 100 700 900]);
-% tl = tiledlayout(F,2,1,'TileSpacing','compact','Padding','compact');
-% 
-% % ---- Top tile: NONMEM
-% axT = nexttile(tl); hold(axT,'on');
-% copyobj(allchild(srcAx1), axT);
-% xlim(axT, xlim(srcAx1)); ylim(axT, ylim(srcAx1));
-% xlabel(axT, srcAx1.XLabel.String);
-% ylabel(axT, srcAx1.YLabel.String);
-% title(axT,  get(get(srcAx1,'Title'),'String'));
-% grid(axT,'on'); box(axT,'on');
-% % Copy legend if present
-% lg1 = findobj(f1,'Type','Legend');
-% if ~isempty(lg1)
-%     legend(axT, lg1.String, 'Location', lg1.Location);
-% end
-% 
-% % ---- Bottom tile: Virtual
-% axB = nexttile(tl); hold(axB,'on');
-% copyobj(allchild(srcAx2), axB);
-% xlim(axB, xlim(srcAx2)); ylim(axB, ylim(srcAx2));
-% xlabel(axB, srcAx2.XLabel.String);
-% ylabel(axB, srcAx2.YLabel.String);
-% title(axB,  get(get(srcAx2,'Title'),'String'));
-% grid(axB,'on'); box(axB,'on');
-% % Copy legend if present
-% lg2 = findobj(f2,'Type','Legend');
-% if ~isempty(lg2)
-%     legend(axB, lg2.String, 'Location', lg2.Location);
-% end
-% 
-% % Optional: same Y-limits
-% yl = [min([ylim(axT) ylim(axB)]) max([ylim(axT) ylim(axB)])];
-% ylim(axT,yl); ylim(axB,yl);
-% 
-% % Clean up source figures
-% close(f1); close(f2);
-% 
-
 %% Prepare REAL DATASET for OPTIMIZATION
-% Working on all columns
 N=size(T_first,1); 
 
 load ./SavedOptimization/AMICREA_CI_withCalibration.mat
@@ -877,7 +716,7 @@ if flag==0                      % AMICREA-CI
 else                            % AMICREA-TH
     % 15% have AKI
     aki=zeros(N,1); 
-    idx = randperm(N, round(0.15*N)); % seleziona casualmente il 15% degli indici
+    idx = randperm(N, round(0.15*N));
     aki(idx) = 1;
     
     % Gender is specified
@@ -896,7 +735,7 @@ T_first.BW_kg_ = T_first.BW./1000;
 T_first.BSA = 0.024265 .* (T_first.BW_kg_ .^ 0.5378) .* (T_first.Ht .^ 0.3964); % Haycock formula
     
 % Set MIC
-micValue  = [2, 3, 4, 6, 8];  % tipici sono 2/4/6. 
+micValue  = [2, 3, 4, 6, 8];
 micFreq   = [6, 2, 1, 0.5, 0.5];
 
 % Sample MIC values from a discrete distribution using randsample
@@ -915,12 +754,8 @@ modelObj    = sbioProjObj.m1;
 modelObj.Species(3,1).InitialAmount = 8.8087e+05;
 modelObj.Species(4,1).InitialAmount = 2.2194e+05;
 
-% load ./Bacterial_model_calibration/DigitalTwins_jointCalibration.mat
-
 load ./SavedModels/RNN_models.mat
 
-% N=size(simResults.neonates,1);
-% FOR REAL DATASETS
 N=size(T_first,1); 
 
 
@@ -940,16 +775,15 @@ resultsOptPop = table('Size', [0,32], 'VariableNames',{'PtID','GA','PNA','PMA','
                 'VariableTypes',["string",repmat("double",1,3), "string", repmat("double",1,27)]);
 
 
-target.Cmax_min        = 0;      % non necessario se usi solo il rapporto
-target.Cmax_cap_hard   = 60;     % cap duro sicurezza
-target.Cmax_cap_soft   = 35;     % penalità soft oltre 35
+target.Cmax_min        = 0;
+target.Cmax_cap_hard   = 60;
+target.Cmax_cap_soft   = 35;
 
-target.TCmin_max       = 48;     % TCmin deve essere ≤ 48 h
+target.TCmin_max       = 48;
 
-target.CmaxMIC_lb      = 8;      % banda obiettivo del rapporto
+target.CmaxMIC_lb      = 8;
 target.CmaxMIC_ub      = 10;
 
-% Lasciali ma NON li useremo nei vincoli/obiettivo ora
 target.AUC_MIC_lb      = 21.4;
 target.AUC_MIC_goal2   = 62.5;
 
@@ -983,11 +817,10 @@ for i = 1:N
         delete(getdose(modelObj)); 
     end 
 
-    % --- Prima del while / for loop ---
-    tolAbs = 1e-6;   % tolleranza assoluta (mg/L) -> accetta differenze piccolissime
-    tolRel = 1e-3;   % tolleranza relativa (0.1%) -> evita falsi allarmi su valori grandi
+    tolAbs = 1e-6;
+    tolRel = 1e-3;
     
-    Cb_end_prev = NaN;   % inizializza
+    Cb_end_prev = NaN;
 
     maxIters  = 20;         % safety cap: ~60 intervals is plenty
     maxHours  = 240;        % hard max total therapy hours
@@ -1022,12 +855,12 @@ for i = 1:N
 
         % --- Renal function
         Cr  = predict(model, predict_from);
-        Cr_pred = min(max(Cr, 0.4), 4.5); % prima stava a 0.9, VINCOLATA TROPPO secondo me -> il max val of creat in creacool è 4
+        Cr_pred = min(max(Cr, 0.4), 4.5);
 
         Ht     = row.Ht;
         k      = (GA < 37)*0.33 + (GA >= 37)*0.45;
         eGFR_std = k * Ht / Cr_pred;               % mL/min/1.73m^2
-        BSA      = row.BSA;        % CORRETTO ora
+        BSA      = row.BSA;
         CL_tot_mL_min = eGFR_std * (BSA / 1.73);   % mL/min
         eGFRkg  = CL_tot_mL_min / BW_kg;           % mL/min/kg
 
@@ -1077,9 +910,6 @@ for i = 1:N
         % TBW & GFR (your original intent)
         tbw=sbioselect(modelObj,'Name','TBW','Type','parameter'); tbw.Value = TBW_kg;
         gfr=sbioselect(modelObj,'Name','GFR','Type','parameter'); gfr.Value = eGFRkg;
-        
-        % se vogliamo ricalibrare ogni volta basta reinserire la
-        % calibrazione qui.. 
 
         % --- Optimize regimen and simulate
         if j==1
@@ -1449,17 +1279,12 @@ function [Xopt, fval] = optimizeRegimen(mObj, cs, target, cfg, BW_kg, start)
         fu=0.9;
         ratio = fu * Cmax / target.MIC;
     
-        % Penalità soft
-        e_tcmin = max(0, TCmin - target.TCmin_max);      % TCmin > 25
-        %e_cmax  = max(0, ratio  - target.CmaxMIC_lb);  % Cmax > 35
+        e_tcmin = max(0, TCmin - target.TCmin_max);
     
-        % (opzionale) micro-penalità per ratio fuori banda
         e_ratio_lo = max(0, target.CmaxMIC_lb - ratio);
-        % e_ratio_hi = max(0, ratio - target.CmaxMIC_ub);
     
-        w = struct('tc',1,'cmax',1);  % pesi principali
+        w = struct('tc',1,'cmax',1);
         sse = w.tc*e_tcmin^2 + w.cmax*e_ratio_lo^2;
-        % sse = sse + 0.5*(e_ratio_lo^2 + e_ratio_hi^2);  % opzionale
     end
 
 
