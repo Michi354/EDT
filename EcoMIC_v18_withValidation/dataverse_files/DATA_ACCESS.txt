@@ -1,0 +1,20 @@
+DATA ACCESS NOTICE
+
+The data that support the findings of this study are available from the
+Ethics Committee Research (EC Research) UZ/KU Leuven, but restrictions apply
+to the availability of these data, which were used under licence for the
+current study, and so are not publicly available. Data are however available
+from the authors upon reasonable request and with permission of EC
+Research UZ/KU Leuven.
+
+The public repository therefore does not distribute the patient-level cohort
+files originally used by the code.
+
+If approved access is obtained, the code expects local copies with these names:
+- data as published Amicool.xlsx
+- dataset as published creacool.xlsx
+- NONMEM.xlsx
+
+Clinical characteristics of the three datasets used are summarized in Table 7,
+"Clinical characteristics of patients in the three neonatal cohorts," in the
+paper.

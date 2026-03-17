@@ -1,0 +1,18 @@
+## Model regeneration note
+
+The public repository intentionally excludes the following files:
+
+- `LMEModel_flag0.mat`
+- `LMEModel_flag1.mat`
+- `LMEModel_flag2.mat`
+- `LMEModel_flag3.mat`
+
+These files were originally saved as MATLAB `LinearMixedModel` objects. Because those objects retain the training table internally, the serialized `.mat` files may contain patient-level cohort data. They have therefore been removed from the public release.
+
+If you have approved access to the underlying cohort spreadsheets, regenerate the missing `LMEModel_flag*.mat` files locally before running the sections of `runProject.m` that compare this framework against the reference-paper model.
+
+The code expects the regenerated files at:
+- `SavedModels/LMEModel_flag0.mat`
+- `SavedModels/LMEModel_flag1.mat`
+- `SavedModels/LMEModel_flag2.mat`
+- `SavedModels/LMEModel_flag3.mat`
