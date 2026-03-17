@@ -75,9 +75,9 @@ The public repository does not include the patient-level cohort spreadsheets.
 
 ## Requirements
 
-To run the workflow, the project expects a MATLAB environment with support for
+To run the workflow, the project expects a MATLAB R2024 environment with support for
 the components exercised by the scripts, including:
-- SimBiology
+- SimBiology v23.2
 - Statistics and Machine Learning functionality
 - Optimization functionality
 
