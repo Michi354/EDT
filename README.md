@@ -2,7 +2,7 @@
 
 ## Main Entry Point
 
-- `EcoMIC_v18_withValidation/runProject.m`
+- `source/runProject.m`
 
 ## Framework Overview
 
@@ -27,13 +27,13 @@ calibration, and regimen optimization.
 
 ## Repository Structure
 
-- `EcoMIC_v18_withValidation/runProject.m`
+- `source/runProject.m`
   Main orchestrator for the complete workflow.
-- `EcoMIC_v18_withValidation/PBPK_PD_EcoEvolutive.sbproj`
+- `source/PBPK_PD_EcoEvolutive.sbproj`
   SimBiology PBPK/PD project loaded and updated by the MATLAB scripts.
-- `EcoMIC_v18_withValidation/dataverse_files/DATA_ACCESS.txt`
+- `source/dataverse_files/DATA_ACCESS.txt`
   Public data-access note replacing the distributed cohort spreadsheets.
-- `EcoMIC_v18_withValidation/SavedModels/MODEL_REGENERATION.txt`
+- `source/SavedModels/MODEL_REGENERATION.txt`
   Note describing which mixed-effects model files must be regenerated locally
   from approved data.
 
