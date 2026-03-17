@@ -43,20 +43,10 @@ elstad_hr_th_plots(T);
 
 [dataset, flag] = selectPipelineFromGUI();
 
-%% 4) Fit Model 
 
-[bestFormula_char, lmeBest, rmse, R2] = fitCreatinineModel(dataset,flag);
-modelstr = strcat('LMEModel_flag',string(flag),'.mat');
-save_path = './SavedModels';
-mkdir(save_path)
-save(fullfile(save_path, modelstr), 'lmeBest');
+%% 4) Load sCr RNN models
+models = load('./SavedModels/RNN_models.mat');
 
-%% 4) Load Creatinine models
-models = cell(4,1);
-for i = 0:3
-    tmp = load(sprintf('./SavedModels/LMEModel_flag%d.mat', i));
-    models{i+1} = tmp.lmeBest;
-end
 
 %% 5) Load SimBiology Model
 sbioProjObj = sbioloadproject('PBPK_PD_EcoEvolutive.sbproj');
@@ -230,13 +220,10 @@ else
     disp(cmp(1:min(10,height(cmp)), :))  % quick peek
     
     % --- pooled (headline numbers) ---
-    pooled_static = computePooledFoldMetrics(dataset, modelObj, false);
     pooled_tv     = computePooledFoldMetrics(dataset, modelObj, true);
     
     fprintf('\nPOOLED (all obs–pred pairs)\n');
-    fprintf('  STATIC: AAFE=%.3f  AFE=%.3f  P2=%.1f%%  (N=%d)\n', ...
-        pooled_static.AAFE, pooled_static.AFE, pooled_static.P2, pooled_static.Npairs);
-    fprintf('    TV  : AAFE=%.3f  AFE=%.3f  P2=%.1f%%  (N=%d)\n', ...
+    fprintf('        : AAFE=%.3f  AFE=%.3f  P2=%.1f%%  (N=%d)\n', ...
         pooled_tv.AAFE, pooled_tv.AFE, pooled_tv.P2, pooled_tv.Npairs);
 
 end
